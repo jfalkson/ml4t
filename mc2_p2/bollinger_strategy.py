@@ -1,8 +1,7 @@
 from util import *
 import pandas as pd
 import numpy as np
-
-
+import csv
 
 def get_portfolio_value(prices, allocs, start_val=1):
     """Compute daily portfolio value given stock prices, allocations and starting value.
@@ -48,12 +47,19 @@ def plot_bollinger_data(symbol, start_date,end_date):
     symbol_prices_std = pd.rolling_std(symbol_prices,20)
 
     symbol_prices_mean = pd.rolling_mean(symbol_prices,20)
+    #
+    # print "LOOK ", symbol_prices_mean.ix[19:,:]
+    # print "LOOK ", symbol_prices_mean
 
-    symbol_prices_mean = symbol_prices_mean.ix[20:,:]
+    symbol_prices_mean = symbol_prices_mean.ix[19:,:]
 
-    upper_bollinger = 2*symbol_prices_std.ix[20:,:]+symbol_prices_mean.ix[20:,:]
-    lower_bollinger = -2*symbol_prices_std.ix[20:,:]+symbol_prices_mean.ix[20:,:]
 
+
+    upper_bollinger = 2*symbol_prices_std.ix[19:,:]+symbol_prices_mean
+    lower_bollinger = -2*symbol_prices_std.ix[19:,:]+symbol_prices_mean
+
+    # print "LOOK upper ", upper_bollinger
+    # print "LOOK lower ", lower_bollinger
 
 
     ax =  symbol_prices.plot(title="Bollinger Bands", fontsize=12)
@@ -66,58 +72,59 @@ def plot_bollinger_data(symbol, start_date,end_date):
 
 
 #THis works, edit the code to show all bands
-    plt.plot(symbol_prices_mean.index, symbol_prices_mean, "k-", label='mean')
-    plt.plot(symbol_prices_mean.index, upper_bollinger, "g-", label='Upper band')
-    plt.plot(symbol_prices_mean.index, lower_bollinger, "r-", label='Upper band')
+    plt.plot(symbol_prices_mean.index, symbol_prices_mean, "k-", label='SMA')
+    plt.plot(symbol_prices_mean.index, upper_bollinger, "g-", label='Bollinger Bands')
+    plt.plot(symbol_prices_mean.index, lower_bollinger, "g-", label='')
+    plt.legend(loc=2)
 
-
+    print  "prices " ,symbol_prices
+    print "lower bollinger", lower_bollinger
+    print "LOOK ", symbol_prices['IBM'].ix[19]
+    print "AGAIN ", lower_bollinger['IBM'].ix[0]
     current_status = "Neutral"
 
 
-    for i in range(20,len(symbol_prices)):
-        if current_status == "Neutral":
-            if (symbol_prices['IBM'].ix[i-1] < lower_bollinger['IBM'].ix[i-21]) and \
-                    (symbol_prices['IBM'].ix[i] > lower_bollinger['IBM'].ix[i-20]):
-                current_status = "Long"
-                ax.vlines(x=dates[i],ymin=0,ymax=140, color='g')
 
-            if (symbol_prices['IBM'].ix[i-1] > upper_bollinger['IBM'].ix[i-21]) and \
-                    (symbol_prices['IBM'].ix[i] < upper_bollinger['IBM'].ix[i-20]):
-                current_status = "Short"
-                ax.vlines(x=dates[i],ymin=0,ymax=140, color='r')
-
-        elif current_status == "Long":
-            if (symbol_prices['IBM'].ix[i-1] < symbol_prices_mean['IBM'].ix[i-21]) and \
-        (symbol_prices['IBM'].ix[i] > symbol_prices_mean['IBM'].ix[i-20]):
-                current_status = "Neutral"
-                ax.vlines(x=dates[i],ymin=0,ymax=140, color='black')
-        else:
-            if (symbol_prices['IBM'].ix[i-1] > symbol_prices_mean['IBM'].ix[i-21]) and \
-        (symbol_prices['IBM'].ix[i] < symbol_prices_mean['IBM'].ix[i-20]):
-                current_status = "Neutral"
-                ax.vlines(x=dates[i],ymin=0,ymax=140, color='black')
+    with open('orders.csv', 'wb') as csvfile:
+        orderwriter = csv.writer(csvfile, delimiter=',')
+        orderwriter.writerow(['Date','Symbol','Order','Shares'])
+        # Long entry ==> If the price was below the lower band and now crosses back, then buy
+        # Long exit ==> Price goes from below SMA to above it
+        # Short entry--> price goes from above upper band to below it
+        # Short exit--> price goes from above SMA to below it
 
 
+        for i in range(20,len(symbol_prices)):
+            if current_status == "Neutral":
+                if (symbol_prices['IBM'].ix[i-1] < lower_bollinger['IBM'].ix[i-20]) and \
+                        (symbol_prices['IBM'].ix[i] > lower_bollinger['IBM'].ix[i-19]):
+                    current_status = "Long"
+                    ax.vlines(x=symbol_prices.index[i],ymin=-20,ymax=140, color='g')
+                    orderwriter.writerow([symbol_prices.index[i],'IBM','BUY',100])
 
+                if (symbol_prices['IBM'].ix[i-1] > upper_bollinger['IBM'].ix[i-20]) and \
+                        (symbol_prices['IBM'].ix[i] < upper_bollinger['IBM'].ix[i-19]):
+                    current_status = "Short"
+                    # print " IBM at %r, and bollinger at %r " \
+                    #       %(symbol_prices['IBM'].ix[i],upper_bollinger['IBM'].ix[i-19] )
+                    ax.vlines(x=symbol_prices.index[i],ymin=-20,ymax=140, color='r')
+                    orderwriter.writerow([symbol_prices.index[i],'IBM','SELL',100])
 
-
-
-    # Long entry ==> If the price was below the lower band and now crosses back, then buy
-
-    # Long exit ==> Price goes from below SMA to above it
-
-    # Short entry--> price goes from above upper band to below it
-
-
-    # Short exit--> price goes from above SMA to below it
-
+            elif current_status == "Long":
+                if (symbol_prices['IBM'].ix[i-1] < symbol_prices_mean['IBM'].ix[i-20]) and \
+            (symbol_prices['IBM'].ix[i] > symbol_prices_mean['IBM'].ix[i-19]):
+                    current_status = "Neutral"
+                    ax.vlines(x=symbol_prices.index[i],ymin=-20,ymax=140, color='black')
+                    orderwriter.writerow([symbol_prices.index[i],'IBM','SELL',100])
+            # Short
+            elif current_status == "Short":
+                if (symbol_prices['IBM'].ix[i-1] > symbol_prices_mean['IBM'].ix[i-20]) and \
+            (symbol_prices['IBM'].ix[i] < symbol_prices_mean['IBM'].ix[i-19]):
+                    current_status = "Neutral"
+                    ax.vlines(x=symbol_prices.index[i],ymin=-20,ymax=140, color='black')
+                    orderwriter.writerow([symbol_prices.index[i],'IBM','BUY',100])
 
     plt.show()
-    print "hii!" , symbol_prices_mean
-
-    #plt.(symbol_prices_mean)
-
-
 
 def test_run():
     """Driver function."""
