@@ -6,8 +6,16 @@ import numpy as np
 import math
 import LinRegLearner as lrl
 import KNNLearner as knn
+import datetime
+
+
+import BagLearner as bl
+# learner = bl.BagLearner(learner = knn.KNNLearner, kwargs = {"k":3}, bags = 20, boost = False)
+# learner.addEvidence(Xtrain, Ytrain)
+# Y = learner.query(Xtest)
 
 if __name__=="__main__":
+    start = datetime.datetime.now()
     inf = open('Data/ripple.csv')
     # inf = open('Data/simple.csv')
     data = np.array([map(float,s.strip().split(',')) for s in inf.readlines()])
@@ -24,7 +32,8 @@ if __name__=="__main__":
 
     # create a learner and train it
     # learner = lrl.LinRegLearner() # create a LinRegLearner
-    learner = knn.KNNLearner(k=3)
+    # learner = knn.KNNLearner(k=3)
+    learner = bl.BagLearner(learner = knn.KNNLearner, kwargs = {"k":3}, bags = 200, boost = False)
     learner.addEvidence(trainX, trainY) # train it
 
     # evaluate in sample
@@ -44,3 +53,6 @@ if __name__=="__main__":
     print "RMSE: ", rmse
     c = np.corrcoef(predY, y=testY)
     print "corr: ", c[0,1]
+    end = datetime.datetime.now()
+    time = end - start
+    print "this took " , time.seconds , " seconds"
