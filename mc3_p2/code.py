@@ -38,6 +38,7 @@ x_test_all = pd.concat([volatility_all, momentum_all, bb_value_all[2:]], axis=1)
 
 x_test_all = x_test_all.loc['2010-01-01':'2010-12-31']
 
+symbol_prices_out_of_sample_only  = symbol_prices_out_of_sample.loc['2010-01-01':'2010-12-31']
 
 '''
 STEP 1: COMPUTE THE 3 X FEATURES WE WILL USE TO TRAIN OUR MODEL
@@ -93,7 +94,7 @@ y_test_df.columns = [symbol]
 y_test_all = pd.DataFrame(list(learner.query(x_test_all.values)), index = x_test_all.index)
 
 
-print y_test_all
+# print y_test_all
 
 
 '''
@@ -170,22 +171,21 @@ with open('orders_out_of_sample.csv', 'wb') as csvfile:
     # Short entry--> price goes from above upper band to below it
     # Short exit--> price goes from above SMA to below it
 
-    # 22 days into our data we have enough information to construct volatility stats
     for i in range(0,len(x_test_all)-5):
        #  print i
         # If predicted return is greater than 2%, hold for 5 days then sells
 
 
-        if y_test_df.ix[i-22].values > .02:
-            ax.vlines(x=symbol_prices.index[i],ymin=-20,ymax=140, color='g')
-            orderwriter.writerow([symbol_prices.index[i],symbol_str ,'BUY',100])
-            orderwriter.writerow([symbol_prices.index[i+5],symbol_str ,'SELL',100])
+        if y_test_all.ix[i].values > .02:
+            ax.vlines(x=symbol_prices_out_of_sample_only.index[i],ymin=-20,ymax=140, color='g')
+            orderwriter.writerow([symbol_prices_out_of_sample_only.index[i],symbol_str ,'BUY',100])
+            orderwriter.writerow([symbol_prices_out_of_sample_only.index[i+5],symbol_str ,'SELL',100])
             i+=5
 
-        elif (y_test_df.ix[i-22].values <= -.02):
-            ax.vlines(x=symbol_prices.index[i],ymin=-20,ymax=140, color='r')
-            orderwriter.writerow([symbol_prices.index[i],symbol_str ,'SELL',100])
-            orderwriter.writerow([symbol_prices.index[i+5],symbol_str ,'BUY',100])
+        elif (y_test_all.ix[i].values <= -.02):
+            ax.vlines(x=symbol_prices_out_of_sample_only.index[i],ymin=-20,ymax=140, color='r')
+            orderwriter.writerow([symbol_prices_out_of_sample_only.index[i],symbol_str ,'SELL',100])
+            orderwriter.writerow([symbol_prices_out_of_sample_only.index[i+5],symbol_str ,'BUY',100])
             i+=5
         else:
             pass
