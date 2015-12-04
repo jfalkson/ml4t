@@ -60,7 +60,8 @@ class QLearner(object):
         @returns: The selected action
         """
 
-        action = self.querysetstate(self.s)
+        # action = self.querysetstate(s_prime)
+
 
         # if np.random.uniform(0,1) < self.rar:
         #     action = rand.randint(0, self.num_actions-1)
@@ -78,11 +79,13 @@ class QLearner(object):
 
         # print "LOOK ",  self.Q[max_action, s_prime]
 
+        action = self.Q[:, s_prime].argmax()
+
         self.Q[self.a,self.s] = (1-self.alpha)*self.Q[self.a,self.s]  \
                 + self.alpha * (r + self.gamma*self.Q[action,s_prime])
 
 
-        # self.rar = self.radr*self.rar
+        self.rar = self.radr*self.rar
         self.a = action
         self.s = s_prime
 
